@@ -2,6 +2,7 @@
 
 import { SectionCard } from "@/components/shared/layout/SectionCard";
 import Select from "@/components/shared/input/Select";
+import Slider from "@/components/shared/input/Slider";
 import type { DropdownMenuState } from "../types";
 
 type Props = { state: DropdownMenuState; update: <K extends keyof DropdownMenuState>(key: K, value: DropdownMenuState[K]) => void };
@@ -17,5 +18,6 @@ export default function PlacementSection({ state, update }: Props) {
   "start",
   "center",
   "end"
-]} onChange={(value) => update("align", value)} /></SectionCard>;
+]} onChange={(value) => update("align", value)} />
+<Slider label="Offset" value={state.offset ?? 10} min={0} max={48} step={1} onChange={(value) => update("offset", value)} /></SectionCard>;
 }
