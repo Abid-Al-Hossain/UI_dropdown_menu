@@ -41,6 +41,7 @@ function itemStyle(model, active, disabled) {
     color: disabled ? model.muted : active ? "#020617" : model.foreground,
     cursor: disabled ? "not-allowed" : "pointer",
     textAlign: "left",
+    transition: model.motion ? "background 150ms ease, color 150ms ease" : "none",
   };
 }
 

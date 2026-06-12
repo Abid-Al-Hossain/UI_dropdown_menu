@@ -140,11 +140,31 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
         }}
       >
         {state.label}
-        <span aria-hidden="true">{resolvedOpen ? "Close" : "Open"}</span>
+        <svg
+          aria-hidden="true"
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          style={{
+            transform: resolvedOpen ? "rotate(180deg)" : "rotate(0deg)",
+            transition: state.motion ? "transform 200ms ease" : "none",
+            flexShrink: 0,
+          }}
+        >
+          <path d="M3 6l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
 
-      {resolvedOpen ? (
-        <div
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: resolvedOpen ? "1fr" : "0fr",
+          transition: state.motion ? "grid-template-rows 200ms ease" : "none",
+        }}
+      >
+        <div style={{ overflow: "hidden" }} aria-hidden={!resolvedOpen || undefined}>
+      <div
           id={menuId}
           role="menu"
           aria-label={state.ariaLabel}
@@ -183,16 +203,32 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
                       disabled={item.disabled}
                       onMouseEnter={() => setActiveIndex(absoluteIndex)}
                       onClick={() => selectItem(item)}
-                      className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm"
                       style={{
                         background: isActive ? "color-mix(in oklab, " + state.accent + " 26%, transparent)" : "transparent",
                         color: item.disabled ? state.muted : state.foreground,
+                        transition: state.motion ? "background 150ms ease, color 150ms ease" : "none",
                       }}
                     >
-                      <span>{item.role === "menuitemcheckbox" ? (item.checked ? "[x] " : "[ ] ") : item.role === "menuitemradio" ? (item.checked ? "(o) " : "( ) ") : ""}{item.label}</span>
-                      <span className="text-xs" style={{ color: state.muted }}>
-                        {item.hasSubmenu ? "Submenu" : state.showShortcuts ? item.shortcut : ""}
-                      </span>
+                      {item.role === "menuitemcheckbox" ? (
+                        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                          <rect x="1" y="1" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.5" fill={item.checked ? "currentColor" : "none"} />
+                          {item.checked && <path d="M3.5 7l2.5 2.5 4.5-5" stroke={item.disabled ? state.muted : state.background} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
+                        </svg>
+                      ) : item.role === "menuitemradio" ? (
+                        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                          <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5" />
+                          {item.checked && <circle cx="7" cy="7" r="3" fill="currentColor" />}
+                        </svg>
+                      ) : null}
+                      <span>{item.label}</span>
+                      {item.hasSubmenu ? (
+                        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: "auto", flexShrink: 0 }}>
+                          <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : state.showShortcuts ? (
+                        <span className="ml-auto text-xs" style={{ color: state.muted }}>{item.shortcut}</span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -200,7 +236,8 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
             );
           })}
         </div>
-      ) : null}
+        </div>
+      </div>
 
       <p className="mt-4 text-xs" style={{ color: state.muted }}>
         {state.helper} Keyboard: Enter/Space opens, Arrow keys move, Home/End jump, Escape closes. Placement {state.side}/{state.align}, offset {state.offset ?? 10}px.
