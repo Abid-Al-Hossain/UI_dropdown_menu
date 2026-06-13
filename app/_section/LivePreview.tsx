@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { DropdownMenuState } from "../types";
+import { SYSTEM_FONTS } from "@/components/shared/typography/fontConstants";
 
 type MenuItemRole = "menuitem" | "menuitemcheckbox" | "menuitemradio";
 
@@ -15,18 +16,41 @@ type MenuItem = {
   hasSubmenu: boolean;
 };
 
+function resolveFont(state: { fontBucket: "system" | "google"; googleFontFamily: string; systemFontIdx: number }): string {
+  return state.fontBucket === "google"
+    ? `"${state.googleFontFamily}", sans-serif`
+    : (SYSTEM_FONTS[state.systemFontIdx]?.css ?? "inherit");
+}
+
+function buildShadow(state: { shadowEnabled: boolean; shadowX: number; shadowY: number; shadowBlur: number; shadowSpread: number; shadowColor: string; shadowOpacity: number }): string {
+  if (!state.shadowEnabled) return "none";
+  const hex = Math.round(state.shadowOpacity * 255).toString(16).padStart(2, "0");
+  return `${state.shadowX}px ${state.shadowY}px ${state.shadowBlur}px ${state.shadowSpread}px ${state.shadowColor}${hex}`;
+}
+
+function buildRadius(state: { radiusLinked: boolean; radius: number; radiusTL: number; radiusTR: number; radiusBR: number; radiusBL: number }): string {
+  return state.radiusLinked
+    ? `${state.radius}px`
+    : `${state.radiusTL}px ${state.radiusTR}px ${state.radiusBR}px ${state.radiusBL}px`;
+}
+
 function shell(state: DropdownMenuState): CSSProperties {
   return {
     width: state.width,
     minHeight: state.height,
     padding: state.padding,
     gap: state.gap,
-    borderRadius: state.radius,
-    border: `${state.borderWidth}px solid ${state.border}`,
-    boxShadow: `0 ${Math.round(state.shadow / 3)}px ${state.shadow}px rgba(0,0,0,.28)`,
+    borderRadius: buildRadius(state),
+    border: `${state.borderWidth}px ${state.borderStyle} ${state.border}`,
+    boxShadow: buildShadow(state),
     background: state.background,
     color: state.foreground,
-    fontFamily: state.fontFamily,
+    fontFamily: resolveFont(state),
+    fontStyle: state.fontStyle,
+    textTransform: state.textTransform,
+    textDecoration: state.textDecoration,
+    letterSpacing: `${state.letterSpacing}${state.letterSpacingUnit}`,
+    lineHeight: state.lineHeight,
     opacity: state.disabled ? 0.55 : 1,
   };
 }
@@ -148,7 +172,7 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
           fill="none"
           style={{
             transform: resolvedOpen ? "rotate(180deg)" : "rotate(0deg)",
-            transition: state.motion ? "transform 200ms ease" : "none",
+            transition: state.transitionDuration > 0 ? "transform 200ms ease" : "none",
             flexShrink: 0,
           }}
         >
@@ -160,7 +184,7 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
         style={{
           display: "grid",
           gridTemplateRows: resolvedOpen ? "1fr" : "0fr",
-          transition: state.motion ? "grid-template-rows 200ms ease" : "none",
+          transition: state.transitionDuration > 0 ? "grid-template-rows 200ms ease" : "none",
         }}
       >
         <div style={{ overflow: "hidden" }} aria-hidden={!resolvedOpen || undefined}>
@@ -207,7 +231,7 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
                       style={{
                         background: isActive ? "color-mix(in oklab, " + state.accent + " 26%, transparent)" : "transparent",
                         color: item.disabled ? state.muted : state.foreground,
-                        transition: state.motion ? "background 150ms ease, color 150ms ease" : "none",
+                        transition: state.transitionDuration > 0 ? "background 150ms ease, color 150ms ease" : "none",
                       }}
                     >
                       {item.role === "menuitemcheckbox" ? (

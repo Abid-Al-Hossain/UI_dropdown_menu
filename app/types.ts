@@ -1,4 +1,4 @@
-export type SectionId = "presets" | "basics" | "metadata" | "content" | "items" | "behavior" | "layout" | "placement" | "sizing" | "colors" | "border" | "radius" | "shadow" | "typography" | "motion" | "states" | "accessibility";
+export type SectionId = "presets" | "basics" | "metadata" | "content" | "items" | "behavior" | "layout" | "placement" | "sizing" | "colors" | "border" | "radius" | "shadow" | "typography" | "transitions" | "focus-ring" | "states" | "accessibility";
 
 export type DropdownMenuState = {
   title: string;
@@ -14,18 +14,50 @@ export type DropdownMenuState = {
   padding: number;
   radius: number;
   borderWidth: number;
-  shadow: number;
+  borderStyle: "solid" | "dashed" | "dotted" | "double" | "none";
+  // Typography (full button-parity)
+  fontBucket: "system" | "google";
+  fontSearch: string;
+  systemFontIdx: number;
+  googleFontFamily: string;
+  fontSizeUnit: "px" | "rem";
+  fontStyle: "normal" | "italic";
+  textTransform: "none" | "uppercase" | "lowercase" | "capitalize";
+  textDecoration: "none" | "underline";
+  letterSpacing: number;
+  letterSpacingUnit: "px" | "em";
+  lineHeight: number;
+  // Radius (full corner control)
+  radiusLinked: boolean;
+  radiusTL: number;
+  radiusTR: number;
+  radiusBR: number;
+  radiusBL: number;
+  // Shadow (full control)
+  shadowEnabled: boolean;
+  shadowX: number;
+  shadowY: number;
+  shadowBlur: number;
+  shadowSpread: number;
+  shadowOpacity: number;
+  shadowColor: string;
+  // Focus Ring
+  focusRingEnabled: boolean;
+  focusRingWidth: number;
+  focusRingOffset: number;
+  focusRingColor: string;
+  // Transitions
+  transitionDuration: number;
+  transitionEasing: "ease" | "ease-in" | "ease-out" | "ease-in-out" | "linear";
   background: string;
   foreground: string;
   muted: string;
   accent: string;
   border: string;
-  fontFamily: string;
   titleSize: number;
   bodySize: number;
   fontWeight: number;
   previewState: "default" | "hover" | "focus" | "active" | "open" | "closed" | "selected" | "loading" | "empty" | "error" | "success";
-  motion: boolean;
   disabled: boolean;
   role: "menu";
   itemCount: number;
@@ -40,7 +72,7 @@ export type DropdownMenuState = {
   loopNavigation?: boolean;
 };
 
-export type StudioPreset = { id: string; family: string; archetype: string; variant: string; size: string; tags: string[]; state: DropdownMenuState };
+export type StudioPreset = { id: string; family: string; archetype: string; variant: string; size: string; tags: string[]; state: Partial<DropdownMenuState> & Record<string, unknown> };
 
 export const SECTIONS: Array<{ id: SectionId; label: string }> = [
   {
@@ -100,8 +132,12 @@ export const SECTIONS: Array<{ id: SectionId; label: string }> = [
     "label": "Typography"
   },
   {
-    "id": "motion",
-    "label": "Motion"
+    "id": "transitions",
+    "label": "Transitions"
+  },
+  {
+    "id": "focus-ring",
+    "label": "Focus Ring"
   },
   {
     "id": "states",
