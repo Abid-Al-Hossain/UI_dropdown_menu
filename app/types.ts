@@ -1,4 +1,4 @@
-export type SectionId = "presets" | "basics" | "metadata" | "content" | "items" | "behavior" | "layout" | "placement" | "sizing" | "colors" | "border" | "radius" | "shadow" | "typography" | "transitions" | "focus-ring" | "states" | "accessibility";
+export type SectionId = "presets" | "basics" | "metadata" | "content" | "items" | "behavior" | "layout" | "placement" | "sizing" | "colors" | "border" | "radius" | "shadow" | "typography" | "transitions" | "focus-ring" | "states" | "disabled" | "accessibility";
 
 export type DropdownMenuState = {
   title: string;
@@ -54,11 +54,18 @@ export type DropdownMenuState = {
   muted: string;
   accent: string;
   border: string;
+  actionText: string;
   titleSize: number;
   bodySize: number;
   fontWeight: number;
   previewState: "default" | "hover" | "focus" | "active" | "open" | "closed" | "selected" | "loading" | "empty" | "error" | "success";
   disabled: boolean;
+  disabledOpacity: number;
+  disabledCursor: "not-allowed" | "default" | "pointer";
+  disabledUseCustomColors: boolean;
+  disabledBg: string;
+  disabledText: string;
+  disabledBorder: string;
   role: "menu";
   itemCount: number;
   groupCount: number;
@@ -67,6 +74,34 @@ export type DropdownMenuState = {
   showShortcuts: boolean;
   side: "top" | "right" | "bottom" | "left";
   align: "start" | "center" | "end";
+  // Menu panel
+  menuBg: string;
+  menuBorder: string;
+  menuRadius: number;
+  menuShadow: string;
+  sectionPaddingY: number;
+  // Items
+  itemBg: string;
+  itemText: string;
+  itemHoverBg: string;
+  itemHoverText: string;
+  itemActiveBg: string;
+  itemActiveText: string;
+  itemDisabledColor: string;
+  itemHeight: number;
+  itemPadding: number;
+  itemRadius: number;
+  // Structure
+  separatorColor: string;
+  groupHeaderColor: string;
+  groupHeaderSize: number;
+  groupDividerColor: string;
+  // Item detail
+  shortcutColor: string;
+  checkmarkColor: string;
+  submenuIndicatorColor: string;
+  iconColor: string;
+  iconSize: number;
   offset?: number;
   dismissOnSelect?: boolean;
   loopNavigation?: boolean;
@@ -142,6 +177,10 @@ export const SECTIONS: Array<{ id: SectionId; label: string }> = [
   {
     "id": "states",
     "label": "State Preview"
+  },
+  {
+    "id": "disabled",
+    "label": "Disabled"
   },
   {
     "id": "accessibility",

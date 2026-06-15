@@ -10,6 +10,9 @@ export function buildReactCode(state: DropdownMenuState) {
   return `import * as React from "react";
 
 const state = ${JSON.stringify(state, null, 2)};
+function resolveFont(s) { return s.fontBucket === "google" ? '"' + s.googleFontFamily + '", sans-serif' : "inherit"; }
+function buildShadow(s) { if (!s.shadowEnabled) return "none"; var hex = Math.round(s.shadowOpacity * 255).toString(16).padStart(2, "0"); return s.shadowX + "px " + s.shadowY + "px " + s.shadowBlur + "px " + s.shadowSpread + "px " + s.shadowColor + hex; }
+
 
 function buildItems(model) {
   return Array.from({ length: model.itemCount }, (_, index) => {
@@ -27,21 +30,23 @@ function buildItems(model) {
   });
 }
 
-function itemStyle(model, active, disabled) {
+function itemStyle(model, isCursor, isSelected, disabled) {
+  const background = disabled ? "transparent" : isSelected ? model.itemActiveBg : isCursor ? model.itemHoverBg : model.itemBg;
+  const color = disabled ? model.itemDisabledColor : isSelected ? model.itemActiveText : isCursor ? model.itemHoverText : model.itemText;
   return {
     width: "100%",
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
+    gap: 8,
     border: 0,
-    borderRadius: 12,
-    padding: "10px 12px",
-    background: active ? model.accent : "transparent",
-    color: disabled ? model.muted : active ? "#020617" : model.foreground,
-    cursor: disabled ? "not-allowed" : "pointer",
+    minHeight: model.itemHeight,
+    borderRadius: model.itemRadius,
+    padding: "0 " + model.itemPadding + "px",
+    background,
+    color,
+    cursor: disabled ? model.disabledCursor : "pointer",
     textAlign: "left",
-    transition: model.motion ? "background 150ms ease, color 150ms ease" : "none",
+    transition: model.transitionDuration > 0 ? "background 150ms ease, color 150ms ease" : "none",
   };
 }
 
@@ -114,12 +119,12 @@ export default function DropdownMenuComponent() {
         minHeight: state.height,
         padding: state.padding,
         borderRadius: state.radius,
-        border: state.borderWidth + "px solid " + state.border,
-        boxShadow: "0 " + Math.round(state.shadow / 3) + "px " + state.shadow + "px rgba(0,0,0,.28)",
+        border: state.borderWidth + "px " + state.borderStyle + " " + (state.disabled && state.disabledUseCustomColors ? state.disabledBorder : state.border),
+        boxShadow: buildShadow(state),
         background: state.background,
         color: state.foreground,
-        fontFamily: state.fontFamily,
-        opacity: state.disabled ? 0.55 : 1,
+        fontFamily: resolveFont(state),
+        opacity: state.disabled ? (state.disabledOpacity ?? 0.5) : 1,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -149,9 +154,9 @@ export default function DropdownMenuComponent() {
           border: "1px solid " + (state.previewState === "focus" ? state.accent : state.border),
           padding: "12px 16px",
           background: state.previewState === "active" ? state.accent : "rgba(255,255,255,.06)",
-          color: state.previewState === "active" ? "#020617" : state.foreground,
+          color: state.previewState === "active" ? state.actionText : state.foreground,
           fontWeight: 700,
-          cursor: state.disabled ? "not-allowed" : "pointer",
+          cursor: state.disabled ? state.disabledCursor : "pointer",
         }}
       >
         {state.label}
@@ -172,10 +177,11 @@ export default function DropdownMenuComponent() {
             maxWidth: 360,
             display: "grid",
             gap: 8,
-            borderRadius: 18,
-            border: "1px solid " + state.border,
-            padding: 8,
-            background: "rgba(2,6,23,.74)",
+            borderRadius: state.menuRadius,
+            border: "1px solid " + state.menuBorder,
+            padding: state.sectionPaddingY,
+            background: state.menuBg,
+            boxShadow: state.menuShadow,
             backdropFilter: "blur(16px)",
             outline: 0,
           }}
@@ -186,21 +192,39 @@ export default function DropdownMenuComponent() {
 
             return (
               <div key={groupIndex} role="group" aria-label={"Group " + (groupIndex + 1)} style={{ display: "grid", gap: 4 }}>
-                {groupIndex > 0 ? <div role="separator" style={{ height: 1, margin: "4px 0", background: state.border }} /> : null}
+                {groupIndex > 0 ? <div role="separator" style={{ height: 1, margin: "4px 0", background: state.separatorColor }} /> : null}
+                <div style={{ padding: "4px 12px" }}>
+                  <p style={{ margin: 0, color: state.groupHeaderColor, fontSize: state.groupHeaderSize, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" }}>{"Group " + (groupIndex + 1)}</p>
+                  <div style={{ height: 1, marginTop: 4, background: state.groupDividerColor }} />
+                </div>
                 {groupItems.map((item, itemIndex) => {
                   const absoluteIndex = groupIndex * groupSize + itemIndex;
-                  const active = absoluteIndex === activeIndex || state.previewState === "selected";
-                  const label = (item.role === "menuitemcheckbox" ? (item.checked ? "[x] " : "[ ] ") : item.role === "menuitemradio" ? (item.checked ? "(o) " : "( ) ") : "") + item.label;
+                  const isCursor = absoluteIndex === activeIndex;
+                  const isSelected = state.previewState === "selected";
 
-                  if (item.role === "menuitemcheckbox") {
-                    return <button key={item.id} type="button" role="menuitemcheckbox" aria-checked={item.checked} aria-disabled={item.disabled || undefined} aria-haspopup={item.hasSubmenu ? "menu" : undefined} aria-expanded={item.hasSubmenu ? active : undefined} tabIndex={active ? 0 : -1} disabled={item.disabled} onMouseEnter={() => setActiveIndex(absoluteIndex)} onClick={() => selectItem(item)} style={itemStyle(state, active, item.disabled)}><span>{label}</span><span style={{ color: active ? "#020617" : state.muted, fontSize: 12 }}>{item.hasSubmenu ? "Submenu" : state.showShortcuts ? item.shortcut : ""}</span></button>;
-                  }
-
-                  if (item.role === "menuitemradio") {
-                    return <button key={item.id} type="button" role="menuitemradio" aria-checked={item.checked} aria-disabled={item.disabled || undefined} aria-haspopup={item.hasSubmenu ? "menu" : undefined} aria-expanded={item.hasSubmenu ? active : undefined} tabIndex={active ? 0 : -1} disabled={item.disabled} onMouseEnter={() => setActiveIndex(absoluteIndex)} onClick={() => selectItem(item)} style={itemStyle(state, active, item.disabled)}><span>{label}</span><span style={{ color: active ? "#020617" : state.muted, fontSize: 12 }}>{item.hasSubmenu ? "Submenu" : state.showShortcuts ? item.shortcut : ""}</span></button>;
-                  }
-
-                  return <button key={item.id} type="button" role="menuitem" aria-disabled={item.disabled || undefined} aria-haspopup={item.hasSubmenu ? "menu" : undefined} aria-expanded={item.hasSubmenu ? active : undefined} tabIndex={active ? 0 : -1} disabled={item.disabled} onMouseEnter={() => setActiveIndex(absoluteIndex)} onClick={() => selectItem(item)} style={itemStyle(state, active, item.disabled)}><span>{label}</span><span style={{ color: active ? "#020617" : state.muted, fontSize: 12 }}>{item.hasSubmenu ? "Submenu" : state.showShortcuts ? item.shortcut : ""}</span></button>;
+                  return (
+                    <button key={item.id} type="button" role={item.role} aria-checked={item.role === "menuitem" ? undefined : item.checked} aria-disabled={item.disabled || undefined} aria-haspopup={item.hasSubmenu ? "menu" : undefined} aria-expanded={item.hasSubmenu ? isCursor || isSelected : undefined} tabIndex={isCursor || isSelected ? 0 : -1} disabled={item.disabled} onMouseEnter={() => setActiveIndex(absoluteIndex)} onClick={() => selectItem(item)} style={itemStyle(state, isCursor, isSelected, item.disabled)}>
+                      {item.role === "menuitemcheckbox" ? (
+                        <svg aria-hidden="true" width={state.iconSize} height={state.iconSize} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                          <rect x="1" y="1" width="12" height="12" rx="3" stroke={state.iconColor} strokeWidth="1.5" fill={item.checked ? state.iconColor : "none"} />
+                          {item.checked ? <path d="M3.5 7l2.5 2.5 4.5-5" stroke={item.disabled ? state.itemDisabledColor : state.checkmarkColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /> : null}
+                        </svg>
+                      ) : item.role === "menuitemradio" ? (
+                        <svg aria-hidden="true" width={state.iconSize} height={state.iconSize} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                          <circle cx="7" cy="7" r="6" stroke={state.iconColor} strokeWidth="1.5" />
+                          {item.checked ? <circle cx="7" cy="7" r="3" fill={state.checkmarkColor} /> : null}
+                        </svg>
+                      ) : null}
+                      <span>{item.label}</span>
+                      {item.hasSubmenu ? (
+                        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: "auto", flexShrink: 0 }}>
+                          <path d="M4.5 2.5L8 6l-3.5 3.5" stroke={state.submenuIndicatorColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : state.showShortcuts ? (
+                        <span style={{ marginLeft: "auto", color: state.shortcutColor, fontSize: 12 }}>{item.shortcut}</span>
+                      ) : null}
+                    </button>
+                  );
                 })}
               </div>
             );

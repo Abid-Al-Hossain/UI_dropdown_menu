@@ -41,9 +41,9 @@ function shell(state: DropdownMenuState): CSSProperties {
     padding: state.padding,
     gap: state.gap,
     borderRadius: buildRadius(state),
-    border: `${state.borderWidth}px ${state.borderStyle} ${state.border}`,
+    border: `${state.borderWidth}px ${state.borderStyle} ${state.disabled && state.disabledUseCustomColors ? state.disabledBorder : state.border}`,
     boxShadow: buildShadow(state),
-    background: state.background,
+    background: state.disabled && state.disabledUseCustomColors ? state.disabledBg : state.background,
     color: state.foreground,
     fontFamily: resolveFont(state),
     fontStyle: state.fontStyle,
@@ -51,7 +51,8 @@ function shell(state: DropdownMenuState): CSSProperties {
     textDecoration: state.textDecoration,
     letterSpacing: `${state.letterSpacing}${state.letterSpacingUnit}`,
     lineHeight: state.lineHeight,
-    opacity: state.disabled ? 0.55 : 1,
+    opacity: state.disabled ? state.disabledOpacity : 1,
+    cursor: state.disabled ? state.disabledCursor : undefined,
   };
 }
 
@@ -160,7 +161,7 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
         style={{
           borderColor: state.previewState === "focus" ? state.accent : state.border,
           background: state.previewState === "active" ? state.accent : "rgba(255,255,255,.06)",
-          color: state.previewState === "active" ? "#020617" : state.foreground,
+          color: state.previewState === "active" ? state.actionText : state.foreground,
         }}
       >
         {state.label}
@@ -195,11 +196,14 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
           aria-orientation="vertical"
           tabIndex={state.tabIndex}
           onKeyDown={handleMenuKeyDown}
-          className="grid w-full max-w-sm gap-2 rounded-2xl border p-2 outline-none"
+          className="grid w-full max-w-sm gap-2 border outline-none"
           style={{
             ...placementStyle(state),
-            borderColor: state.border,
-            background: "rgba(2,6,23,.74)",
+            padding: state.sectionPaddingY,
+            borderRadius: state.menuRadius,
+            borderColor: state.menuBorder,
+            background: state.menuBg,
+            boxShadow: state.menuShadow,
             backdropFilter: "blur(16px)",
           }}
         >
@@ -209,10 +213,34 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
 
             return (
               <div key={groupIndex} role="group" aria-label={`Group ${groupIndex + 1}`} className="grid gap-1">
-                {groupIndex > 0 ? <div role="separator" className="my-1 h-px" style={{ background: state.border }} /> : null}
+                {groupIndex > 0 ? <div role="separator" className="my-1 h-px" style={{ background: state.separatorColor }} /> : null}
+                <div className="px-3 pb-1 pt-1">
+                  <p
+                    className="font-semibold uppercase tracking-[0.18em]"
+                    style={{ color: state.groupHeaderColor, fontSize: state.groupHeaderSize }}
+                  >
+                    {`Group ${groupIndex + 1}`}
+                  </p>
+                  <div className="mt-1 h-px" style={{ background: state.groupDividerColor }} />
+                </div>
                 {groupItems.map((item, itemIndex) => {
                   const absoluteIndex = groupIndex * groupSize + itemIndex;
-                  const isActive = absoluteIndex === activeIndex || state.previewState === "selected";
+                  const isCursor = absoluteIndex === activeIndex;
+                  const isSelected = state.previewState === "selected";
+                  const itemBackground = item.disabled
+                    ? "transparent"
+                    : isSelected
+                      ? state.itemActiveBg
+                      : isCursor
+                        ? state.itemHoverBg
+                        : state.itemBg;
+                  const itemColor = item.disabled
+                    ? state.itemDisabledColor
+                    : isSelected
+                      ? state.itemActiveText
+                      : isCursor
+                        ? state.itemHoverText
+                        : state.itemText;
 
                   return (
                     <button
@@ -222,36 +250,39 @@ export default function LivePreview({ state }: { state: DropdownMenuState }) {
                       aria-checked={item.role === "menuitem" ? undefined : item.checked}
                       aria-disabled={item.disabled || undefined}
                       aria-haspopup={item.hasSubmenu ? "menu" : undefined}
-                      aria-expanded={item.hasSubmenu ? isActive : undefined}
-                      tabIndex={isActive ? 0 : -1}
+                      aria-expanded={item.hasSubmenu ? isCursor || isSelected : undefined}
+                      tabIndex={isCursor || isSelected ? 0 : -1}
                       disabled={item.disabled}
                       onMouseEnter={() => setActiveIndex(absoluteIndex)}
                       onClick={() => selectItem(item)}
-                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm"
+                      className="flex items-center gap-2 text-left text-sm"
                       style={{
-                        background: isActive ? "color-mix(in oklab, " + state.accent + " 26%, transparent)" : "transparent",
-                        color: item.disabled ? state.muted : state.foreground,
+                        minHeight: state.itemHeight,
+                        padding: `0 ${state.itemPadding}px`,
+                        borderRadius: state.itemRadius,
+                        background: itemBackground,
+                        color: itemColor,
                         transition: state.transitionDuration > 0 ? "background 150ms ease, color 150ms ease" : "none",
                       }}
                     >
                       {item.role === "menuitemcheckbox" ? (
-                        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                          <rect x="1" y="1" width="12" height="12" rx="3" stroke="currentColor" strokeWidth="1.5" fill={item.checked ? "currentColor" : "none"} />
-                          {item.checked && <path d="M3.5 7l2.5 2.5 4.5-5" stroke={item.disabled ? state.muted : state.background} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
+                        <svg aria-hidden="true" width={state.iconSize} height={state.iconSize} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                          <rect x="1" y="1" width="12" height="12" rx="3" stroke={state.iconColor} strokeWidth="1.5" fill={item.checked ? state.iconColor : "none"} />
+                          {item.checked && <path d="M3.5 7l2.5 2.5 4.5-5" stroke={item.disabled ? state.itemDisabledColor : state.checkmarkColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
                         </svg>
                       ) : item.role === "menuitemradio" ? (
-                        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                          <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5" />
-                          {item.checked && <circle cx="7" cy="7" r="3" fill="currentColor" />}
+                        <svg aria-hidden="true" width={state.iconSize} height={state.iconSize} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                          <circle cx="7" cy="7" r="6" stroke={state.iconColor} strokeWidth="1.5" />
+                          {item.checked && <circle cx="7" cy="7" r="3" fill={state.checkmarkColor} />}
                         </svg>
                       ) : null}
                       <span>{item.label}</span>
                       {item.hasSubmenu ? (
                         <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginLeft: "auto", flexShrink: 0 }}>
-                          <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M4.5 2.5L8 6l-3.5 3.5" stroke={state.submenuIndicatorColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       ) : state.showShortcuts ? (
-                        <span className="ml-auto text-xs" style={{ color: state.muted }}>{item.shortcut}</span>
+                        <span className="ml-auto text-xs" style={{ color: state.shortcutColor }}>{item.shortcut}</span>
                       ) : null}
                     </button>
                   );
